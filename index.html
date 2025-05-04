@@ -1,125 +1,192 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Catatan Keuangan</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aplikasi Catatan Keuangan</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600;700&display=swap');
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+  </style>
 </head>
-<body class="p-5 bg-gray-100">
-    <div class="max-w-lg mx-auto bg-white p-5 rounded-lg shadow-lg">
-        <h1 class="text-xl font-bold text-center mb-4">Aplikasi Pencacatan keuangan</h1>
-        <div class="flex justify-between mb-4">
-            <div class="bg-green-200 p-2 rounded-lg">Total Pemasukan: <span id="totalIncome">Rp0</span></div>
-            <div class="bg-red-200 p-2 rounded-lg">Total Pengeluaran: <span id="totalExpense">Rp0</span></div>
-        </div>
-        <label>Tanggal:</label>
-        <input type="date" id="date" class="border w-full p-2 rounded mb-2">
-        <label>Keterangan:</label>
-        <input type="text" id="description" class="border w-full p-2 rounded mb-2" placeholder="Masukkan keterangan">
-        <label>Tipe Transaksi:</label>
-        <select id="type" class="border w-full p-2 rounded mb-2">
-            <option value="income">Pemasukan</option>
-            <option value="expense">Pengeluaran</option>
-        </select>
-        <label>Jumlah (Rp):</label>
-        <input type="number" id="amount" class="border w-full p-2 rounded mb-4" placeholder="Masukkan jumlah">
-        <button id="addTransaction" class="bg-green-500 text-white p-2 w-full rounded mb-2">Tambah Transaksi</button>
-        <button id="clearData" class="bg-red-500 text-white p-2 w-full rounded mb-2">Hapus Semua Data</button>
-        <button id="savePDF" class="bg-blue-500 text-white p-2 w-full rounded mb-2">Simpan PDF</button>
-        <button id="deleteLastRow" class="bg-yellow-500 text-white p-2 w-full rounded">Hapus Baris Terakhir</button>
+<body class="bg-[#F1F5F9] min-h-screen">
+
+  <!-- Header seperti Android AppBar -->
+  <header class="bg-[#0F172A] text-white py-4 px-6 shadow-lg flex items-center justify-between rounded-b-2xl">
+    <div class="flex items-center gap-3">
+      <img src="https://img.icons8.com/ios-filled/50/ffffff/wallet.png" class="w-6 h-6" alt="icon" />
+      <h1 class="text-lg font-semibold">Catatan Keuangan</h1>
     </div>
-    
-    <div class="max-w-lg mx-auto bg-white p-5 rounded-lg shadow-lg mt-5">
-        <h2 class="text-lg font-bold mb-2">Data Keuangan</h2>
-        <table class="w-full border-collapse border border-gray-400" id="transactionTable">
-            <thead>
-                <tr class="bg-gray-200">
-                    <th class="border p-2">Tanggal</th>
-                    <th class="border p-2">Keterangan</th>
-                    <th class="border p-2">Pemasukan (Rp)</th>
-                    <th class="border p-2">Pengeluaran (Rp)</th>
-                    <th class="border p-2">Saldo (Rp)</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
+    <div>
+      <span class="text-xs opacity-70">v1.0</span>
     </div>
-    
-    <script>
-        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
-        let saldo = 0;
+  </header>
 
-        function updateTotals() {
-            let totalIncome = 0, totalExpense = 0;
-            transactions.forEach(trx => {
-                if (trx.type === "income") totalIncome += trx.amount;
-                else totalExpense += trx.amount;
-            });
-            $("#totalIncome").text(`Rp${totalIncome.toLocaleString("id-ID")}`);
-            $("#totalExpense").text(`Rp${totalExpense.toLocaleString("id-ID")}`);
-        }
+  <!-- Konten -->
+  <main class="max-w-md mx-auto mt-6 p-4 space-y-4">
+    <!-- Input URL Google Sheet -->
+    <div class="bg-white rounded-xl shadow p-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Link Google Sheets Web App</label>
+      <input type="text" id="sheetUrl" class="border w-full p-2 rounded text-sm" placeholder="https://script.google.com/..." />
+    </div>
 
-        function updateTable() {
-            let tbody = $("#transactionTable tbody");
-            tbody.empty();
-            saldo = 0;
-            transactions.forEach(trx => {
-                saldo += trx.type === "income" ? trx.amount : -trx.amount;
-                tbody.append(`
-                    <tr>
-                        <td class='border p-2'>${trx.date}</td>
-                        <td class='border p-2'>${trx.description}</td>
-                        <td class='border p-2'>${trx.type === "income" ? "Rp" + trx.amount.toLocaleString("id-ID") : ""}</td>
-                        <td class='border p-2'>${trx.type === "expense" ? "Rp" + trx.amount.toLocaleString("id-ID") : ""}</td>
-                        <td class='border p-2'>Rp${saldo.toLocaleString("id-ID")}</td>
-                    </tr>
-                `);
-            });
-            updateTotals();
-            localStorage.setItem('transactions', JSON.stringify(transactions));
-        }
+    <!-- Ringkasan Pemasukan dan Pengeluaran -->
+    <div class="flex justify-between text-sm">
+      <div class="bg-green-100 text-green-800 px-4 py-2 rounded-xl w-[48%] text-center">
+        <div>Pemasukan</div>
+        <div id="totalIncome" class="font-bold">Rp0</div>
+      </div>
+      <div class="bg-red-100 text-red-800 px-4 py-2 rounded-xl w-[48%] text-center">
+        <div>Pengeluaran</div>
+        <div id="totalExpense" class="font-bold">Rp0</div>
+      </div>
+    </div>
 
-        $("#addTransaction").click(() => {
-            let date = $("#date").val();
-            let description = $("#description").val();
-            let type = $("#type").val();
-            let amount = parseInt($("#amount").val()) || 0;
+    <!-- Form Transaksi -->
+    <div class="bg-white rounded-xl shadow p-4 space-y-2">
+      <label class="text-sm font-medium">Tanggal</label>
+      <input type="date" id="date" class="border w-full p-2 rounded" />
 
-            if (!date || !description || amount <= 0) return alert("Semua field harus diisi dengan benar!");
+      <label class="text-sm font-medium">Keterangan</label>
+      <input type="text" id="description" class="border w-full p-2 rounded" placeholder="Misalnya: Gaji Bulanan" />
 
-            transactions.push({ date, description, type, amount });
-            updateTable();
+      <label class="text-sm font-medium">Tipe Transaksi</label>
+      <select id="type" class="border w-full p-2 rounded">
+        <option value="income">Pemasukan</option>
+        <option value="expense">Pengeluaran</option>
+      </select>
+
+      <label class="text-sm font-medium">Jumlah (Rp)</label>
+      <input type="number" id="amount" class="border w-full p-2 rounded" placeholder="Masukkan jumlah" />
+    </div>
+
+    <!-- Tombol Aksi -->
+    <div class="grid grid-cols-2 gap-2">
+      <button id="addTransaction" class="bg-green-600 text-white py-2 rounded-xl">+ Tambah</button>
+      <button id="deleteLastRow" class="bg-yellow-500 text-white py-2 rounded-xl">Hapus Terakhir</button>
+      <button id="clearData" class="bg-red-600 text-white py-2 rounded-xl col-span-2">🗑 Hapus Semua Data</button>
+      <button id="savePDF" class="bg-blue-600 text-white py-2 rounded-xl col-span-2">💾 Simpan ke PDF</button>
+    </div>
+
+    <!-- Tabel Transaksi -->
+    <div class="bg-white rounded-xl shadow p-4 overflow-x-auto">
+      <h2 class="text-base font-semibold mb-2">Riwayat Transaksi</h2>
+      <table class="min-w-full text-xs border border-gray-200" id="transactionTable">
+        <thead>
+          <tr class="bg-gray-100 text-gray-700">
+            <th class="border p-2">Tanggal</th>
+            <th class="border p-2">Keterangan</th>
+            <th class="border p-2">+Masuk</th>
+            <th class="border p-2">-Keluar</th>
+            <th class="border p-2">Saldo</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Script tetap -->
+  <script>
+    let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+    let sheetUrl = localStorage.getItem('sheetUrl') || "";
+    let saldo = 0;
+
+    function updateTotals() {
+      let income = 0, expense = 0;
+      transactions.forEach(t => {
+        if (t.type === "income") income += t.amount;
+        else expense += t.amount;
+      });
+      $("#totalIncome").text(`Rp${income.toLocaleString("id-ID")}`);
+      $("#totalExpense").text(`Rp${expense.toLocaleString("id-ID")}`);
+    }
+
+    function updateTable() {
+      const tbody = $("#transactionTable tbody");
+      tbody.empty();
+      saldo = 0;
+      transactions.forEach(t => {
+        saldo += t.type === "income" ? t.amount : -t.amount;
+        tbody.append(`
+          <tr>
+            <td class='border p-2'>${t.date}</td>
+            <td class='border p-2'>${t.description}</td>
+            <td class='border p-2'>${t.type === "income" ? "Rp" + t.amount.toLocaleString("id-ID") : ""}</td>
+            <td class='border p-2'>${t.type === "expense" ? "Rp" + t.amount.toLocaleString("id-ID") : ""}</td>
+            <td class='border p-2'>Rp${saldo.toLocaleString("id-ID")}</td>
+          </tr>
+        `);
+      });
+      updateTotals();
+      localStorage.setItem('transactions', JSON.stringify(transactions));
+    }
+
+    async function syncToSheet(data) {
+      if (!sheetUrl) return;
+      try {
+        await fetch(sheetUrl, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
         });
+      } catch (error) {
+        console.error("Gagal sync ke Sheet:", error);
+      }
+    }
 
-        $("#clearData").click(() => {
-            transactions = [];
-            saldo = 0;
-            updateTable();
-        });
+    $("#sheetUrl").on("input", function () {
+      sheetUrl = $(this).val();
+      localStorage.setItem('sheetUrl', sheetUrl);
+    });
 
-        $("#deleteLastRow").click(() => {
-            transactions.pop();
-            updateTable();
-        });
+    $("#addTransaction").click(() => {
+      const date = $("#date").val();
+      const description = $("#description").val();
+      const type = $("#type").val();
+      const amount = parseInt($("#amount").val()) || 0;
 
-        $("#savePDF").click(() => {
-            html2canvas(document.querySelector("#transactionTable")).then(canvas => {
-                let imgData = canvas.toDataURL("image/png");
-                let pdf = new jspdf.jsPDF();
-                pdf.text("Data Keuangan", 10, 10);
-                pdf.addImage(imgData, "PNG", 10, 20, 180, 0);
-                pdf.save("Catatan_Keuangan.pdf");
-            });
-        });
+      if (!date || !description || amount <= 0) return alert("Semua field harus diisi!");
 
-        $(document).ready(() => {
-            updateTable();
-        });
-    </script>
+      const transaction = { date, description, type, amount };
+      transactions.push(transaction);
+      updateTable();
+      syncToSheet(transaction);
+    });
+
+    $("#clearData").click(() => {
+      transactions = [];
+      saldo = 0;
+      updateTable();
+    });
+
+    $("#deleteLastRow").click(() => {
+      transactions.pop();
+      updateTable();
+    });
+
+    $("#savePDF").click(() => {
+      html2canvas(document.querySelector("#transactionTable")).then(canvas => {
+        let imgData = canvas.toDataURL("image/png");
+        let pdf = new jspdf.jsPDF();
+        pdf.text("Data Keuangan", 10, 10);
+        pdf.addImage(imgData, "PNG", 10, 20, 180, 0);
+        pdf.save("Catatan_Keuangan.pdf");
+      });
+    });
+
+    $(document).ready(() => {
+      $("#sheetUrl").val(sheetUrl);
+      updateTable();
+    });
+  </script>
 </body>
 </html>
